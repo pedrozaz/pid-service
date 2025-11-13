@@ -1,32 +1,9 @@
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel
 from typing import List
 
-class PlantModel(BaseModel):
-    gain: float
-    time_constant: float
-    dead_time: float
-
-class PIDParams(BaseModel):
-    kp: float
-    ki: float
-    kd: float
-
-class SimulationRequest(BaseModel):
-    plant: PlantModel
-    pid: PIDParams
-    setpoint: float
-    duration: float
-    time_step: float = 0.1
-
-class TimePoint(BaseModel):
-    time: float
-    process_variable: float
-    setpoint: float
-
-class SimulationResponse(BaseModel):
-    results: List[TimePoint]
+from models import SimulationRequest, SimulationResponse, TimePoint
+from simulation import run_fopdt_simulation
 
 app = FastAPI(
     title="PID Simulation Service",
@@ -34,17 +11,24 @@ app = FastAPI(
 )
 
 @app.post("/simulate", response_model=SimulationResponse)
-async def run_simulation(request: SimulationRequest):
-    print(f"[LOG] Received simulation with plant gain: {request.plant.gain}")
-    print(f"[LOG] PID gain: Kp={request.pid.kp}, Ki={request.pid.ki}, Kd={request.pid.kd}")
+async def run_simulation(request : SimulationRequest):
+    print(f"[API] Received simulation with plant gain: {request.plant.gain}")
+    print(f"[API] PID gain: Kp={request.pid.kp}, Ki={request.pid.ki}, Kd={request.pid.kd}")
 
-    mock_results = [
-        TimePoint(time=0.0, process_variable=0.0, setpoint=request.setpoint),
-        TimePoint(time=0.1, process_variable=10.0, setpoint=request.setpoint),
-        TimePoint(time=0.2, process_variable=25.0, setpoint=request.setpoint),
+    simulation_data = run_fopdt_simulation(
+        plant = request.plant,
+        pid = request.pid,
+        setpoint = request.setpoint,
+        duration = request.duration,
+        time_step = request.time_step,
+    )
+
+    results = [
+        TimePoint(time=t, process_variable=pv, setpoint=sp)
+        for t, pv, sp in simulation_data
     ]
 
-    return SimulationResponse(results=mock_results)
+    return SimulationResponse(results = results)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8001)
