@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: pid-tuner-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pid_tuner
+    username: admin
+    password: admin
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+simulation:
+  service:
+    url: "http://localhost:8001"
